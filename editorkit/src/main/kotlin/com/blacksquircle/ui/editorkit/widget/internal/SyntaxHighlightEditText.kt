@@ -79,13 +79,13 @@ abstract class SyntaxHighlightEditText @JvmOverloads constructor(
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        updateSyntaxHighlighting()
+        runCatching { updateSyntaxHighlighting() }
         super.onSizeChanged(w, h, oldw, oldh)
     }
 
     override fun onScrollChanged(horiz: Int, vert: Int, oldHoriz: Int, oldVert: Int) {
         super.onScrollChanged(horiz, vert, oldHoriz, oldVert)
-        updateSyntaxHighlighting()
+        runCatching { updateSyntaxHighlighting() }
     }
 
     override fun doBeforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) {
@@ -376,12 +376,16 @@ abstract class SyntaxHighlightEditText @JvmOverloads constructor(
         cancelSyntaxHighlighting()
         task = StylingTask(
             doAsync = {
-                language?.getStyler()?.execute(text.toString(), colorScheme) ?: emptyList()
+                try {
+                    language?.getStyler()?.execute(text.toString(), colorScheme) ?: emptyList()
+                } catch (e: Throwable) {
+                    emptyList()
+                }
             },
             onSuccess = { spans ->
                 syntaxHighlightSpans.clear()
                 syntaxHighlightSpans.addAll(spans)
-                updateSyntaxHighlighting()
+                runCatching { updateSyntaxHighlighting() }
             }
         )
         task?.execute()
